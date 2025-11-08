@@ -40,5 +40,3 @@ jobs:
           publish_dir: ./web-build # The directory to deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # If your 'homepage' URL in package.json uses a custom domain, 
-          # you might need to add a CNAME, check the action docs.
