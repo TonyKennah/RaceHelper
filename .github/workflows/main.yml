@@ -1,0 +1,42 @@
+name: Deploy Expo Web to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main # Trigger on pushes to the main branch
+
+jobs:
+  web-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required by the peaceiris/actions-gh-pages action
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # Use a stable Node.js version
+
+      - name: Set up Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          # If using EAS, you might need to set up the EXPO_TOKEN secret.
+          # token: ${{ secrets.EXPO_TOKEN }} 
+
+      - name: Install dependencies
+        run: npm install # or yarn install
+
+      - name: Export the app (build)
+        run: npm run build # Runs the "expo export --clear" command
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./web-build # The directory to deploy
+          # If your 'homepage' URL in package.json uses a custom domain, 
+          # you might need to add a CNAME, check the action docs.
