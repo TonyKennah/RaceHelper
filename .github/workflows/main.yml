@@ -31,7 +31,7 @@ jobs:
         run: npm install # or yarn install
 
       - name: Export the app (build)
-        run: npm run build # Runs the "expo export --clear" command
+        run: npm run predeploy # Runs the "expo export --clear" command
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
