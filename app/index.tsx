@@ -59,7 +59,7 @@ export default function Index() {
   useEffect(() => {
     const loadRaces = async () => {
       try {
-        const response = await fetch('http://www.pluckier.co.uk/todays.json');
+        const response = await fetch('https://www.pluckier.co.uk/todays.json');
         if (!response.ok) {
           // If response is not OK (e.g., 404, 500), throw an error to trigger the fallback.
           throw new Error('Network response was not ok.');
