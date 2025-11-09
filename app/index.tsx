@@ -1,6 +1,9 @@
 import { Image } from 'expo-image';
+import { useNavigation } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import RaceHeader from '../components/RaceHeader';
+import { useTheme } from '../context/ThemeContext';
 
 // In Expo/React Native, you can import JSON files directly.
 import localRaceData from '../data/todays.json';
@@ -32,30 +35,40 @@ interface Race {
 
 // --- Data Processing ---
 
-// Group races by place and sort them by time
-const groupedAndSortedRaces = (races: Race[]): Record<string, Race[]> => {
-  // Group by place
-  const grouped = races.reduce((acc, race) => {
-    const place = race.place;
-    if (!acc[place]) {
-      acc[place] = [];
-    }
-    acc[place].push(race);
-    return acc;
-  }, {} as Record<string, Race[]>);
+type FilterType = 'time' | 'handicap' | 'meeting';
 
-  // Sort races within each group by time
-  for (const place in grouped) {
-    grouped[place].sort((a, b) => a.time.localeCompare(b.time));
+const getFilteredAndSortedRaces = (races: Race[], filter: FilterType): Race[] => {
+  let processedRaces = [...races];
+
+  // Apply filter
+  if (filter === 'handicap') {
+    processedRaces = processedRaces.filter(race =>
+      race.detail.toLowerCase().includes('handicap')
+    );
   }
 
-  return grouped;
+  // Apply sorting based on the filter
+  if (filter === 'meeting') {
+    // Sort by place name first, then by time
+    processedRaces.sort((a, b) => {
+      if (a.place < b.place) return -1;
+      if (a.place > b.place) return 1;
+      return a.time.localeCompare(b.time); // If places are same, sort by time
+    });
+  } else {
+    // Default sort for 'time' and 'handicap' is by time only
+    processedRaces.sort((a, b) => a.time.localeCompare(b.time));
+  }
+
+  return processedRaces;
 };
 
 export default function Index() {
   const [races, setRaces] = useState<Race[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
+  const [filter, setFilter] = useState<FilterType>('time');
+  const navigation = useNavigation();
+  const { theme } = useTheme();
   useEffect(() => {
     const loadRaces = async () => {
       try {
@@ -77,46 +90,44 @@ export default function Index() {
     };
 
     void loadRaces();
-  }, []);
+  }, []); // Only run once on mount
+
+  // Set header options and update when theme or filter changes
+  useEffect(() => {
+    navigation.setOptions({
+      headerStyle: { backgroundColor: theme.card },
+      headerTitle: () => <RaceHeader activeFilter={filter} onFilterChange={setFilter} />,
+    });
+  }, [navigation, filter, theme]);
 
   if (isLoading) {
-    return <View style={styles.centered}><ActivityIndicator size="large" /></View>;
+    return <View style={[styles.centered, { backgroundColor: theme.background }]}><ActivityIndicator size="large" /></View>;
   }
 
-  const processedData = groupedAndSortedRaces(races);
-  const meetingPlaces = Object.keys(processedData).sort();
+  const processedData = getFilteredAndSortedRaces(races, filter);
 
   return (
-    <ScrollView style={styles.container}>
-      {meetingPlaces.map(place => (
-        <View key={place} style={styles.meetingContainer}>
-          <Text style={styles.meetingTitle}>{place}</Text>
-          {processedData[place].map(race => (
-            <View key={`${race.place}-${race.time}`} style={styles.raceContainer}>
-              <View style={styles.raceHeader}>
-                <Text style={styles.raceTime}>{race.time}</Text>
-                <Text style={styles.raceTime}>{race.place}</Text>
-                <Text style={styles.raceDetailsText}>{race.detail}</Text>
-                <Text style={styles.raceSubHeader}>Runners: {race.runners}, Going: {race.going}</Text>
-              </View>
-              {race.horses.map(horse => (
-                <View key={horse.name} style={styles.horseContainer}>
-                  <Text style={styles.colNumber}>{horse.number}.</Text>
-                  {horse.draw ? (
-                    <Text style={styles.colDraw}>({horse.draw})</Text>
-                  ) : (
-                    <View />
-                  )}
-                  <Image source={{ uri: horse.silks }} style={styles.colSilks} contentFit="contain" />
-                  <Text style={styles.colForm} numberOfLines={1}>{horse.form}</Text>
-                  <Text style={styles.colName} numberOfLines={1}>{horse.name}</Text>
-                  <Text style={styles.colWeight}>{horse.weight}</Text>
-                  <Text style={styles.colAge}>{horse.age}</Text>
-                  <Text style={styles.colLastRun}>{horse.lastRun}d</Text>
-                  <Text style={styles.colTrainer} numberOfLines={1}>{horse.trainer}</Text>
-                  <Text style={styles.colJockey} numberOfLines={1}>{horse.jockey}</Text>
-                </View>
-              ))}
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+      {processedData.map(race => (
+        <View key={`${race.place}-${race.time}`} style={[styles.meetingContainer, { backgroundColor: theme.card, shadowColor: theme.text }]}>
+          <View style={styles.raceHeader}>
+            <Text style={[styles.raceTime, { color: theme.text }]}>{race.time}</Text>
+            <Text style={[styles.racePlace, { color: theme.text }]}>{race.place}</Text>
+            <Text style={[styles.raceDetailsText, { color: theme.subtleText }]}>{race.detail}</Text>
+            <Text style={[styles.raceSubHeader, { color: theme.subtleText }]}>Runners: {race.runners}, Going: {race.going}</Text>
+          </View>
+          {race.horses.map(horse => (
+            <View key={horse.name} style={[styles.horseContainer, { borderBottomColor: theme.border }]}>
+              <Text style={[styles.colNumber, { color: theme.text }]}>{horse.number}.</Text>
+              {horse.draw ? <Text style={[styles.colDraw, { color: theme.subtleText }]}>({horse.draw})</Text> : <View />}
+              <Image source={{ uri: horse.silks }} style={styles.colSilks} contentFit="contain" />
+              <Text style={[styles.colForm, { color: theme.subtleText }]} numberOfLines={1}>{horse.form}</Text>
+              <Text style={[styles.colName, { color: theme.text }]} numberOfLines={1}>{horse.name}</Text>
+              <Text style={[styles.colWeight, { color: theme.text }]}>{horse.weight}</Text>
+              <Text style={[styles.colAge, { color: theme.subtleText }]}>{horse.age}</Text>
+              <Text style={[styles.colLastRun, { color: theme.subtleText }]}>{horse.lastRun}d</Text>
+              <Text style={[styles.colTrainer, { color: theme.subtleText }]} numberOfLines={1}>{horse.trainer}</Text>
+              <Text style={[styles.colJockey, { color: theme.subtleText }]} numberOfLines={1}>{horse.jockey}</Text>
             </View>
           ))}
         </View>
@@ -128,7 +139,6 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
     padding: 10,
   },
   centered: {
@@ -138,29 +148,13 @@ const styles = StyleSheet.create({
   },
   meetingContainer: {
     marginBottom: 20,
-    backgroundColor: '#fff',
     borderRadius: 8,
     padding: 15,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
     elevation: 2,
-  },
-  meetingTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    marginBottom: 10,
-  },
-  raceContainer: {
-    marginBottom: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    paddingTop: 10,
+    padding: 10,
   },
   raceHeader: {
     flexDirection: 'row',
@@ -173,13 +167,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginRight: 8,
   },
+  racePlace: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginRight: 8,
+  },
   raceSubHeader: {
     fontSize: 14,
-    color: '#666',
   },
   raceDetailsText: {
     fontSize: 14,
-    color: '#666',
     marginRight: 8,
   },
   horseContainer: {
@@ -187,66 +184,61 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f5f5f5',
   },
   colNumber: {
+    width: '3%',
     fontSize: 14,
     fontWeight: 'bold',
-    width: '2%',
   },
   colDraw: {
+    width: '3%',
     fontSize: 14,
     fontWeight: 'bold',
-    width: '3%',
   },
   colSilks: {
     width: 24,
     height: 24,
-    marginRight: 5,
+    marginRight: 2,
   },
   colForm: {
-    width: '4%',
+    width: '10%',
     textAlign: 'right',
     fontSize: 12,
-    color: '#555',
-    marginRight: 4,
-    marginLeft: 7,
+    marginRight: 7,
+    marginLeft: 4,
   },
   colName: {
-    width: '12%',
+    //flex: 1, // Allow name to take up available space
+    width: '34%',
     fontSize: 16,
     fontWeight: '500',
     //flex: 1, // Allow name to take up the most space
     marginRight: 5,
   },
   colWeight: {
-    width: '8%',
+    width: '11%',
     fontSize: 14,
     textAlign: 'center',
   },
   colAge: {
-    width: '2%',
+    width: '3%',
     fontSize: 14,
     textAlign: 'center',
-    color: '#555',
   },
   colLastRun: {
-    width: '6%',
+    width: '8%',
     fontSize: 14,
     textAlign: 'center',
-    color: '#555',
   },
   colTrainer: {
     width: '15%',
     fontSize: 12,
     textAlign: 'left',
-    color: '#555',
     marginRight: 5,
   },
   colJockey: {
-    width: '12%',
+    width: '15%',
     fontSize: 12,
     textAlign: 'left',
-    color: '#555',
   },
 });
