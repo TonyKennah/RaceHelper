@@ -6,6 +6,7 @@ import RaceHeader from '../components/RaceHeader';
 import { useTheme } from '../context/ThemeContext';
 
 // In Expo/React Native, you can import JSON files directly.
+import localOddsData from '../data/odds.json';
 import localRaceData from '../data/todays.json';
 // --- Define Types for our Data ---
 interface Horse {
@@ -63,6 +64,33 @@ const getFilteredAndSortedRaces = (races: Race[], filter: FilterType): Race[] =>
   return processedRaces;
 };
 
+const mergeOddsIntoRaces = (races: Race[], oddsData: { name: string; odds?: number | string }[]): Race[] => {
+  if (!races || !oddsData) {
+    return races;
+  }
+
+  // Create a map of horse names (lowercase) to their odds for efficient lookup.
+  const oddsMap = new Map<string, number | string>();
+  for (const odd of oddsData) {
+    if (odd.name) {
+      // If odds are missing or null, it's a non-runner (NR).
+      const oddsValue = odd.odds !== undefined && odd.odds !== null ? odd.odds : 'NR';
+      oddsMap.set(odd.name.toLowerCase(), oddsValue);
+    }
+  }
+
+  // Iterate over each race and horse to update the odds.
+  return races.map(race => ({
+    ...race,
+    horses: race.horses.map(horse => {
+      const horseNameLower = horse.name.toLowerCase();
+      // Find odds, also checking for names without apostrophes.
+      const horseOdds = oddsMap.get(horseNameLower) ?? oddsMap.get(horseNameLower.replace(/'/g, '')) ?? null;
+      return { ...horse, odds: horseOdds?.toString() };
+    }),
+  }));
+};
+
 export default function Index() {
   const [races, setRaces] = useState<Race[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,18 +100,36 @@ export default function Index() {
   useEffect(() => {
     const loadRaces = async () => {
       try {
-        const response = await fetch('https://www.pluckier.co.uk/todays.json');
-        if (!response.ok) {
-          // If response is not OK (e.g., 404, 500), throw an error to trigger the fallback.
-          throw new Error('Network response was not ok.');
+        let finalRaces: Race[];
+        let finalOdds: { name: string; odds?: number | string }[];
+
+        try {
+          // 1. Try to fetch remote races
+          const racesResponse = await fetch('https://www.pluckier.co.uk/todays.json');
+          if (!racesResponse.ok) throw new Error('Remote races fetch failed.');
+          finalRaces = await racesResponse.json();
+          console.log('Using remote race data.');
+        } catch (e) {
+          // 2. If it fails, use local races
+          console.log('Using local race data due to error:', e.message);
+          finalRaces = localRaceData as Race[];
         }
-        const remoteData = await response.json();
-        setRaces(remoteData);
-        console.log('Successfully fetched remote race data.');
-      } catch (error) {
-        console.error('Failed to fetch remote races, falling back to local data:', error);
-        // Use the imported local data as a fallback.
-        setRaces(localRaceData as Race[]);
+
+        try {
+          // 3. Try to fetch remote odds
+          const oddsResponse = await fetch('https://www.pluckier.co.uk/odds.json');
+          if (!oddsResponse.ok) throw new Error('Remote odds fetch failed.');
+          finalOdds = await oddsResponse.json();
+          console.log('Using remote odds data.');
+        } catch (e) {
+          // 4. If it fails, use local odds
+          console.log('Using local odds data due to error:', e.message);
+          finalOdds = localOddsData;
+        }
+
+        // 5. Merge them and update state
+        const mergedData = mergeOddsIntoRaces(finalRaces, finalOdds);
+        setRaces(mergedData);
       } finally {
         setIsLoading(false);
       }
@@ -122,7 +168,10 @@ export default function Index() {
               {horse.draw ? <Text style={[styles.colDraw, { color: theme.subtleText }]}>({horse.draw})</Text> : <View />}
               <Image source={{ uri: horse.silks }} style={styles.colSilks} contentFit="contain" />
               <Text style={[styles.colForm, { color: theme.subtleText }]} numberOfLines={1}>{horse.form}</Text>
-              <Text style={[styles.colName, { color: theme.text }]} numberOfLines={1}>{horse.name}</Text>
+              <View style={styles.colNameContainer}>
+                <Text style={[styles.colName, { color: theme.text }]} numberOfLines={1}>{horse.name}</Text>
+                {horse.odds && <Text style={[styles.colOdds, { color: theme.subtleText }]}>{horse.odds}</Text>}
+              </View>
               <Text style={[styles.colWeight, { color: theme.text }]}>{horse.weight}</Text>
               <Text style={[styles.colAge, { color: theme.subtleText }]}>{horse.age}</Text>
               <Text style={[styles.colLastRun, { color: theme.subtleText }]}>{horse.lastRun}d</Text>
@@ -207,13 +256,20 @@ const styles = StyleSheet.create({
     marginRight: 7,
     marginLeft: 4,
   },
+  colNameContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 5,
+  },
   colName: {
-    //flex: 1, // Allow name to take up available space
-    width: '34%',
     fontSize: 16,
     fontWeight: '500',
-    //flex: 1, // Allow name to take up the most space
-    marginRight: 5,
+  },
+  colOdds: {
+    fontSize: 14,
+    marginLeft: 8,
+    fontWeight: 'bold',
   },
   colWeight: {
     width: '11%',
