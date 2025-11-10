@@ -27,7 +27,7 @@ const themeOptions: { name: ThemeName; color: string }[] = [
 ];
 
 export default function RaceHeader({ activeFilter, onFilterChange }: RaceHeaderProps) {
-  const { theme, themeName, setTheme } = useTheme();
+  const { theme, themeName, setTheme, zoomLevel, setZoomLevel } = useTheme();
 
   return (
     <View style={styles.container}>
@@ -53,6 +53,19 @@ export default function RaceHeader({ activeFilter, onFilterChange }: RaceHeaderP
               </Text>
             </TouchableOpacity>
           ))}
+        </View>
+        <View style={[styles.filterContainer, { backgroundColor: theme.headerFilter }]}>
+          <TouchableOpacity
+            style={[
+              styles.radio,
+              zoomLevel === 2 && [styles.radioActive, { backgroundColor: theme.headerFilterActive }],
+            ]}
+            onPress={() => setZoomLevel(zoomLevel === 1 ? 2 : 1)}
+          >
+            <Text style={[styles.radioText, { color: theme.headerFilterText }, zoomLevel === 2 && { color: theme.headerFilterTextActive }]}>
+              Zoom
+            </Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.themeSelectorContainer}>
           {themeOptions.map(({ name, color }) => (

@@ -96,7 +96,7 @@ export default function Index() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('time');
   const navigation = useNavigation();
-  const { theme } = useTheme();
+  const { theme, zoomLevel } = useTheme();
   useEffect(() => {
     const loadRaces = async () => {
       try {
@@ -155,28 +155,28 @@ export default function Index() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       {processedData.map(race => (
-        <View key={`${race.place}-${race.time}`} style={[styles.meetingContainer, { backgroundColor: theme.card, shadowColor: theme.text }]}>
+        <View key={`${race.place}-${race.time}`} style={[styles.meetingContainer, { backgroundColor: theme.card, shadowColor: theme.text, padding: 10 * zoomLevel }]}>
           <View style={styles.raceHeader}>
-            <Text style={[styles.raceTime, { color: theme.text }]}>{race.time}</Text>
-            <Text style={[styles.racePlace, { color: theme.text }]}>{race.place}</Text>
-            <Text style={[styles.raceDetailsText, { color: theme.subtleText }]}>{race.detail}</Text>
-            <Text style={[styles.raceSubHeader, { color: theme.subtleText }]}>Runners: {race.runners}, Going: {race.going}</Text>
+            <Text style={[styles.raceTime, { color: theme.text, fontSize: 18 * zoomLevel }]}>{race.time}</Text>
+            <Text style={[styles.racePlace, { color: theme.text, fontSize: 18 * zoomLevel }]}>{race.place}</Text>
+            <Text style={[styles.raceDetailsText, { color: theme.subtleText, fontSize: 14 * zoomLevel }]}>{race.detail}</Text>
+            <Text style={[styles.raceSubHeader, { color: theme.subtleText, fontSize: 14 * zoomLevel }]}>Runners: {race.runners}, Going: {race.going}</Text>
           </View>
           {race.horses.map(horse => (
-            <View key={horse.name} style={[styles.horseContainer, { borderBottomColor: theme.border }]}>
-              <Text style={[styles.colNumber, { color: theme.text }]}>{horse.number}.</Text>
-              {horse.draw ? <Text style={[styles.colDraw, { color: theme.subtleText }]}>({horse.draw})</Text> : <View />}
-              <Image source={{ uri: horse.silks }} style={styles.colSilks} contentFit="contain" />
-              <Text style={[styles.colForm, { color: theme.subtleText }]} numberOfLines={1}>{horse.form}</Text>
+            <View key={horse.name} style={[styles.horseContainer, { borderBottomColor: theme.border, paddingVertical: 8 * zoomLevel }]}>
+              <Text style={[styles.colNumber, { color: theme.text, fontSize: 14 * zoomLevel }]}>{horse.number}.</Text>
+              {horse.draw ? <Text style={[styles.colDraw, { color: theme.subtleText, fontSize: 14 * zoomLevel }]}>({horse.draw})</Text> : <View />}
+              <Image source={{ uri: horse.silks }} style={[styles.colSilks, { width: 24 * zoomLevel, height: 24 * zoomLevel }]} contentFit="contain" />
+              <Text style={[styles.colForm, { color: theme.subtleText, fontSize: 12 * zoomLevel }]} numberOfLines={1}>{horse.form}</Text>
               <View style={styles.colNameContainer}>
-                <Text style={[styles.colName, { color: theme.text }]} numberOfLines={1}>{horse.name}</Text>
-                {horse.odds && <Text style={[styles.colOdds, { color: theme.subtleText }]}>{horse.odds}</Text>}
+                <Text style={[styles.colName, { color: theme.text, fontSize: 16 * zoomLevel }]} numberOfLines={1}>{horse.name}</Text>
+                {horse.odds && <Text style={[styles.colOdds, { color: theme.subtleText, fontSize: 14 * zoomLevel }]}>{horse.odds}</Text>}
               </View>
-              <Text style={[styles.colWeight, { color: theme.text }]}>{horse.weight}</Text>
-              <Text style={[styles.colAge, { color: theme.subtleText }]}>{horse.age}</Text>
-              <Text style={[styles.colLastRun, { color: theme.subtleText }]}>{horse.lastRun}d</Text>
-              <Text style={[styles.colTrainer, { color: theme.subtleText }]} numberOfLines={1}>{horse.trainer}</Text>
-              <Text style={[styles.colJockey, { color: theme.subtleText }]} numberOfLines={1}>{horse.jockey}</Text>
+              <Text style={[styles.colWeight, { color: theme.text, fontSize: 14 * zoomLevel }]}>{horse.weight}</Text>
+              <Text style={[styles.colAge, { color: theme.subtleText, fontSize: 14 * zoomLevel }]}>{horse.age}</Text>
+              <Text style={[styles.colLastRun, { color: theme.subtleText, fontSize: 14 * zoomLevel }]}>{horse.lastRun}d</Text>
+              <Text style={[styles.colTrainer, { color: theme.subtleText, fontSize: 12 * zoomLevel }]} numberOfLines={1}>{horse.trainer}</Text>
+              <Text style={[styles.colJockey, { color: theme.subtleText, fontSize: 12 * zoomLevel }]} numberOfLines={1}>{horse.jockey}</Text>
             </View>
           ))}
         </View>
@@ -203,7 +203,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
     elevation: 2,
-    padding: 10,
   },
   raceHeader: {
     flexDirection: 'row',
@@ -212,31 +211,25 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   raceTime: {
-    fontSize: 18,
     fontWeight: '600',
     marginRight: 8,
   },
   racePlace: {
-    fontSize: 18,
     fontWeight: 'bold',
     marginRight: 8,
   },
   raceSubHeader: {
-    fontSize: 14,
   },
   raceDetailsText: {
-    fontSize: 14,
     marginRight: 8,
   },
   horseContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
     borderBottomWidth: 1,
   },
   colNumber: {
     width: '3%',
-    fontSize: 14,
     fontWeight: 'bold',
   },
   colDraw: {
@@ -245,14 +238,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   colSilks: {
-    width: 24,
-    height: 24,
     marginRight: 2,
   },
   colForm: {
     width: '10%',
     textAlign: 'right',
-    fontSize: 12,
     marginRight: 7,
     marginLeft: 4,
   },
@@ -263,38 +253,31 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   colName: {
-    fontSize: 16,
     fontWeight: '500',
   },
   colOdds: {
-    fontSize: 14,
     marginLeft: 8,
     fontWeight: 'bold',
   },
   colWeight: {
     width: '11%',
-    fontSize: 14,
     textAlign: 'center',
   },
   colAge: {
     width: '3%',
-    fontSize: 14,
     textAlign: 'center',
   },
   colLastRun: {
     width: '8%',
-    fontSize: 14,
     textAlign: 'center',
   },
   colTrainer: {
     width: '15%',
-    fontSize: 12,
     textAlign: 'left',
     marginRight: 5,
   },
   colJockey: {
     width: '15%',
-    fontSize: 12,
     textAlign: 'left',
   },
 });

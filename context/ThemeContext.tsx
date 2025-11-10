@@ -59,17 +59,21 @@ export const themes = {
 };
 
 export type ThemeName = keyof typeof themes;
+export type ZoomLevel = 1 | 2; // 1 = 100%, 2 = 200%
 
 const ThemeContext = createContext({
   theme: themes.light,
   themeName: 'light' as ThemeName,
   setTheme: (name: ThemeName) => {},
+  zoomLevel: 1 as ZoomLevel,
+  setZoomLevel: (level: ZoomLevel) => {},
 });
 
 export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [themeName, setThemeName] = useState<ThemeName>('dark');
+  const [zoomLevel, setZoomLevel] = useState<ZoomLevel>(1);
 
   const setTheme = (name: ThemeName) => {
     setThemeName(name);
@@ -78,7 +82,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const theme = themes[themeName];
 
   return (
-    <ThemeContext.Provider value={{ theme, themeName, setTheme }}>
+    <ThemeContext.Provider value={{ theme, themeName, setTheme, zoomLevel, setZoomLevel }}>
       {children}
     </ThemeContext.Provider>
   );
